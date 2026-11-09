@@ -90,7 +90,7 @@ document.addEventListener('click', (ev) => {
 });
 $('#onlyFav').addEventListener('change', (e) => { state.onlyFav = e.target.checked; render(); });
 
-fetch('events.json').then((r) => r.json()).then((d) => {
+fetch('events.json?v=' + Date.now()).then((r) => r.json()).then((d) => {
   data = d;
   const today = new Date().toISOString().slice(0, 10);
   state.day = days().includes(today) ? today : days()[0];
