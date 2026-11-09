@@ -1,0 +1,30 @@
+// Smoke test: one day at a time, filters, favorites persist, museums tab. URL as argv[2].
+import { chromium } from 'playwright';
+import assert from 'node:assert';
+const url = process.argv[2] || 'http://localhost:8765/';
+const b = await chromium.launch({ channel: 'chrome' });
+const p = await b.newPage({ viewport: { width: 420, height: 900 }, deviceScaleFactor: 2 });
+const errors = []; p.on('pageerror', (e) => errors.push(e.message));
+await p.goto(url);
+await p.waitForSelector('.ev');
+assert.equal(await p.locator('.ev').count(), 28); // 14 Nov only
+await p.click('[data-cat=excursion]');
+assert.equal(await p.locator('.ev').count(), 5);
+await p.click('[data-cat=""]');
+await p.click('[data-fav="2"]');
+await p.reload(); await p.waitForSelector('.ev');
+await p.check('#onlyFav');
+assert.equal(await p.locator('.ev').count(), 1);
+await p.uncheck('#onlyFav');
+await p.waitForTimeout(400); await p.screenshot({ path: '/tmp/tb-14.png' });
+await p.click('[data-day="2026-11-20"]');
+assert.equal(await p.locator('.ev.mine').count(), 1);
+await p.waitForTimeout(400); await p.screenshot({ path: '/tmp/tb-20.png' });
+await p.click('[data-day="anytime"]');
+assert.equal(await p.locator('.ev').count(), 38);
+await p.click('[data-day="museums"]');
+assert.equal(await p.locator('.museum').count(), 6);
+await p.waitForTimeout(400); await p.screenshot({ path: '/tmp/tb-museums.png', fullPage: false });
+assert.deepEqual(errors, []);
+await b.close();
+console.log('ok');
