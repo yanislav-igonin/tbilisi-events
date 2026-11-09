@@ -3,19 +3,23 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Тбилиси · 14–22 ноября</title>
-<link rel="stylesheet" href="style.css?v=1794242885">
+<meta name="theme-color" content="#1d2b6b">
+<title>Тбилиси, 14–22 ноября</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600&family=Noto+Serif+Georgian:wght@500;700&family=Unbounded:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=2">
 </head>
 <body>
-<header>
-  <h1>Тбилиси <span>14–22 ноября 2026</span></h1>
-  <nav id="cats" aria-label="Категории"></nav>
-  <label class="favtoggle"><input type="checkbox" id="onlyFav"> только ★</label>
+<header class="top">
+  <h1>Тбилиси <small>14–22 ноября</small></h1>
+  <label class="onlyfav"><input type="checkbox" id="onlyFav"> Только мои</label>
 </header>
-<nav id="days" aria-label="Дни"></nav>
-<main id="list"></main>
-<section id="museums"><h2>Музеи и выставки</h2><div id="museumList"></div></section>
-<footer>Данные: events.json, собраны 07.11.2026. Цены и наличие билетов проверяй по ссылкам.</footer>
-<script src="app.js?v=1794242885"></script>
+<nav id="days" aria-label="Дни поездки"></nav>
+<main>
+  <section id="day"></section>
+  <section id="museums" hidden></section>
+</main>
+<script src="app.js?v=2"></script>
 </body>
 </html>

@@ -1,35 +1,76 @@
-:root { --bg:#14110f; --card:#201b18; --fg:#f1e9e1; --mute:#a1958a; --acc:#e0663a; --fav:#f2c14e; --line:#352d28; }
-* { box-sizing:border-box; }
-body { margin:0; background:var(--bg); color:var(--fg); font:15px/1.45 -apple-system, system-ui, sans-serif; }
-header { top:0; z-index:2; background:var(--bg); padding:14px 16px 8px; border-bottom:1px solid var(--line); }
-h1 { margin:0 0 10px; font-size:22px; } h1 span { color:var(--mute); font-weight:400; font-size:15px; margin-left:6px; }
-h2 { font-size:18px; margin:28px 0 10px; }
-button { font:inherit; color:inherit; cursor:pointer; }
-#cats { display:flex; gap:6px; overflow-x:auto; scrollbar-width:none; }
-#cats button { flex:none; }
-#cats button, #days button { background:var(--card); border:1px solid var(--line); border-radius:999px; padding:4px 11px; }
-#cats button[aria-pressed=true] { background:var(--acc); border-color:var(--acc); color:#fff; }
-.favtoggle { display:inline-block; margin-top:8px; color:var(--mute); }
-#days { position:sticky; top:0; z-index:2; background:var(--bg); display:grid; grid-template-columns:repeat(9,1fr); gap:6px; padding:10px 16px; }
-#days button { border-radius:10px; padding:6px 2px; text-align:center; line-height:1.2; }
-#days b { display:block; font-size:17px; } #days small { color:var(--mute); font-size:11px; }
-#days button.busy { border-color:var(--acc); }
-#days button.empty { opacity:.4; }
-main, #museums, footer { padding:0 16px; max-width:820px; margin:0 auto; }
-#days button[aria-pressed=true] { background:var(--acc); border-color:var(--acc); color:#fff; }
-#days button[aria-pressed=true] small { color:#fff; }
-#list h2 { margin-top:6px; }
-.none { color:var(--mute); }
-.ev { display:grid; grid-template-columns:58px 1fr auto; gap:10px; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:10px 12px; margin:8px 0; }
-.ev.mine { border-color:var(--acc); box-shadow:0 0 0 1px var(--acc) inset; }
-.ev time { font-weight:600; color:var(--acc); }
-.ev h3 { margin:0; font-size:16px; } .ev h3 a { color:inherit; }
-.ev p { margin:3px 0 0; color:var(--mute); font-size:13px; }
-.tag { display:inline-block; font-size:11px; padding:1px 7px; border-radius:6px; background:var(--line); margin-right:4px; }
-.tag.warn { background:#4a3422; color:#f0b07a; } .tag.ok { background:var(--acc); color:#fff; }
-.star { background:none; border:0; font-size:22px; color:var(--mute); padding:0 2px; align-self:start; }
-.star[aria-pressed=true] { color:var(--fav); }
-.museum { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:10px 12px; margin:8px 0; }
-.museum h3 { margin:0 0 4px; font-size:16px; }
-footer { color:var(--mute); font-size:12px; padding-top:30px; padding-bottom:40px; }
-@media (max-width:560px) { #days { grid-template-columns:repeat(5,1fr); } .ev { grid-template-columns:48px 1fr auto; } }
+/* Palette: Abanotubani bath tiles (cobalt on limewash) + saperavi for what's yours. */
+:root {
+  --ground: #e8edf2;   /* limewash */
+  --ink: #1d2b6b;      /* tile ink blue */
+  --cobalt: #2f56d0;   /* glaze */
+  --saperavi: #7d1d3f; /* wine: favourites and bought tickets */
+  --muted: #5d6886;
+  --rule: #c5d0de;
+  --display: 'Unbounded', system-ui, sans-serif;
+  --text: 'Golos Text', system-ui, sans-serif;
+  --geo: 'Noto Serif Georgian', serif;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--ground); color: var(--ink); font: 16px/1.5 var(--text); }
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; background: none; border: 0; padding: 0; }
+:focus-visible { outline: 2px solid var(--cobalt); outline-offset: 2px; }
+main, .top { max-width: 680px; margin: 0 auto; padding: 0 18px; }
+
+.top { display: flex; align-items: baseline; justify-content: space-between; padding-top: 22px; }
+h1 { margin: 0; font: 700 22px/1.1 var(--display); }
+h1 small { font: 400 15px var(--text); color: var(--muted); margin-left: 6px; }
+.onlyfav { color: var(--saperavi); font-weight: 500; display: flex; gap: 6px; align-items: center; min-height: 44px; }
+.onlyfav input { accent-color: var(--saperavi); width: 18px; height: 18px; }
+
+/* Day strip: the tile row. */
+#days { position: sticky; top: 0; z-index: 2; background: var(--ground); display: flex; gap: 4px;
+  overflow-x: auto; scrollbar-width: none; padding: 10px max(18px, calc(50% - 322px)); }
+#days button { flex: 1 0 52px; min-height: 64px; border-radius: 4px; border: 1.5px solid var(--rule); display: grid; place-items: center; align-content: center; gap: 2px; }
+#days .wd { font-size: 12px; color: var(--muted); }
+#days .n { font: 700 19px/1 var(--display); }
+#days .dots { height: 4px; display: flex; gap: 2px; }
+#days .dots i { width: 4px; height: 4px; border-radius: 50%; background: var(--cobalt); }
+#days .ticket .dots i { background: var(--saperavi); }
+#days [aria-pressed=true] { background: var(--cobalt); border-color: var(--cobalt); color: #fff; }
+#days [aria-pressed=true] .wd { color: #dfe6ff; }
+#days [aria-pressed=true] .dots i { background: #fff; }
+#days .museum-tab { flex-basis: 72px; font-weight: 500; font-size: 14px; }
+
+/* Selected day: the one loud thing. */
+.dayhead { display: grid; grid-template-columns: auto 1fr; column-gap: 14px; align-items: end; margin: 18px 0 6px; }
+.dayhead .big { font: 700 84px/.8 var(--display); grid-row: span 2; color: var(--cobalt); }
+.dayhead .geo { font: 700 26px/1 var(--geo); }
+.dayhead .ru { color: var(--muted); }
+
+.cats { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 16px 0 6px; }
+.cats button { min-height: 32px; color: var(--muted); border-bottom: 2px solid transparent; }
+.cats button[aria-pressed=true] { color: var(--ink); border-color: var(--ink); font-weight: 500; }
+
+/* Events read as a timetable, not cards. */
+.ev { display: grid; grid-template-columns: 56px 1fr 44px; gap: 0 12px; padding: 14px 0; border-top: 1px solid var(--rule); }
+.ev time { font: 500 15px/1.6 var(--display); font-variant-numeric: tabular-nums; }
+.ev h3 { margin: 0; font-size: 17px; font-weight: 600; line-height: 1.3; text-wrap: pretty; }
+.ev h3 a { color: inherit; text-decoration-color: var(--rule); text-underline-offset: 3px; }
+.ev h3 a:hover { text-decoration-color: currentColor; }
+.ev .where { margin: 2px 0 0; color: var(--muted); }
+.ev .about { margin: 6px 0 0; font-size: 15px; }
+.ev .note { margin: 6px 0 0; font-size: 14px; color: var(--muted); font-style: italic; }
+.ev .flag { color: #9a5a00; }
+.ev.mine { background: var(--saperavi); color: #fff; border: 0; border-radius: 4px; padding: 14px 12px; margin: 6px -12px; }
+.ev.mine .where, .ev.mine .note { color: #f0d6df; }
+.ev.mine .bought { display: inline-block; margin-top: 8px; font-weight: 600; }
+.star { width: 44px; height: 44px; font-size: 24px; line-height: 1; color: var(--rule); align-self: start; margin-top: -8px; }
+.star[aria-pressed=true] { color: var(--saperavi); }
+.empty { color: var(--muted); padding: 24px 0; border-top: 1px solid var(--rule); }
+
+.museum { padding: 14px 0; border-top: 1px solid var(--rule); }
+.museum h3 { margin: 0 0 4px; font-size: 17px; }
+.museum p { margin: 2px 0; }
+.museum .hours { color: var(--muted); font-size: 14px; }
+footer { color: var(--muted); font-size: 13px; padding: 28px 0 40px; }
+
+@media (prefers-reduced-motion: no-preference) {
+  #day > * { animation: rise .22s ease-out both; }
+  @keyframes rise { from { opacity: 0; transform: translateY(6px); } }
+}

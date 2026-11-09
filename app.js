@@ -1,6 +1,11 @@
-const CATS = { theatre:'Театр', classical:'Классика', show:'Шоу', comedy:'Стендап', pop:'Поп', excursion:'Экскурсии', sport:'Спорт', electronic:'Электроника', folk:'Фолк', rap:'Рэп', jazz:'Джаз', dance:'Танец', rock:'Рок', metal:'Метал' };
-const STATUS = { restored_unverified:'не подтверждено', unverified_lead:'не подтверждено' };
+const CATS = { theatre:'театр', classical:'классика', show:'шоу', comedy:'стендап', pop:'поп', excursion:'экскурсии', sport:'спорт', electronic:'электроника', folk:'фолк', rap:'рэп', jazz:'джаз', dance:'танец', rock:'рок', metal:'метал' };
+const UNVERIFIED = new Set(['restored_unverified', 'unverified_lead']);
 const WD = ['вс','пн','вт','ср','чт','пт','сб'];
+const WD_RU = ['воскресенье','понедельник','вторник','среда','четверг','пятница','суббота'];
+const WD_KA = ['კვირა','ორშაბათი','სამშაბათი','ოთხშაბათი','ხუთშაბათი','პარასკევი','შაბათი'];
+const HOURS = { weekdays:'будни', weekends:'выходные', open:'ежедневно', tuesday_sunday:'вт–вс', tuesday_saturday:'вт–сб', last_entry:'последний вход', closed:'выходной' };
+const DAY_EN = { Monday:'пн', Tuesday:'вт', Wednesday:'ср', Thursday:'чт', Friday:'пт', Saturday:'сб', Sunday:'вс' };
+
 const favs = new Set(JSON.parse(localStorage.getItem('tbilisi-favs') || '[]'));
 const state = { cat: null, onlyFav: false, day: null };
 let data;
@@ -8,6 +13,8 @@ let data;
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
 const dayOf = (iso) => new Date(iso + 'T12:00:00');
+const startTime = (e) => e.time || e.times?.[0] || '';
+const isMine = (e) => e.ticket_purchased || favs.has(String(e.id));
 
 function days() {
   const out = [];
@@ -16,63 +23,67 @@ function days() {
   return out;
 }
 
-function visible() {
-  return data.events.filter((e) => (!state.cat || e.category === state.cat) && (!state.onlyFav || favs.has(String(e.id)) || e.ticket_purchased));
-}
+const shown = (e) => (!state.cat || e.category === state.cat) && (!state.onlyFav || isMine(e));
 
-function renderCats() {
-  const counts = {};
-  data.events.forEach((e) => counts[e.category] = (counts[e.category] || 0) + 1);
-  const btn = (key, label) => `<button data-cat="${key ?? ''}" aria-pressed="${state.cat === key}">${label}</button>`;
-  $('#cats').innerHTML = btn(null, 'Все') + Object.keys(counts).sort((a, b) => counts[b] - counts[a])
-    .map((c) => btn(c, `${CATS[c] || c} · ${counts[c]}`)).join('');
-}
-
-function renderDays(list) {
+function renderDays() {
   $('#days').innerHTML = days().map((d) => {
-    const evs = list.filter((e) => e.date === d), dt = dayOf(d);
-    const busy = data.events.some((e) => e.date === d && e.ticket_purchased);
-    return `<button class="${busy ? 'busy' : ''} ${evs.length ? '' : 'empty'}" data-day="${d}" aria-pressed="${d === state.day}">
-      <small>${WD[dt.getDay()]}</small><b>${dt.getDate()}</b><small>${busy ? '🎟' : evs.length}</small></button>`;
-  }).join('');
+    const evs = data.events.filter((e) => e.date === d && shown(e)), dt = dayOf(d);
+    const ticket = data.events.some((e) => e.date === d && e.ticket_purchased);
+    const dots = '<i></i>'.repeat(Math.min(evs.length, 5));
+    return `<button class="${ticket ? 'ticket' : ''}" data-day="${d}" aria-pressed="${d === state.day}" aria-label="${dt.getDate()} ноября, событий: ${evs.length}">
+      <span class="wd">${WD[dt.getDay()]}</span><span class="n">${dt.getDate()}</span><span class="dots">${dots}</span></button>`;
+  }).join('') + `<button class="museum-tab" data-day="museums" aria-pressed="${state.day === 'museums'}">Музеи</button>`;
 }
 
 function card(e) {
   const id = String(e.id), fav = favs.has(id);
-  const time = e.times ? e.times.join('<br>') : esc(e.time);
+  const time = e.times ? e.times.join('<br>') : esc(e.time).replace(' / ', '<br>');
   const title = e.url ? `<a href="${esc(e.url)}" target="_blank" rel="noopener">${esc(e.title)}</a>` : esc(e.title);
-  const tags = [`<span class="tag">${CATS[e.category] || esc(e.category)}</span>`];
-  if (e.ticket_purchased) tags.push('<span class="tag ok">билет куплен</span>');
-  if (STATUS[e.status]) tags.push(`<span class="tag warn">${STATUS[e.status]}</span>`);
-  if (e.url_type === 'listing') tags.push('<span class="tag">ссылка на афишу</span>');
+  const price = /не подтвержден/i.test(e.price || '') ? 'цена неизвестна' : e.price;
+  const where = [e.venue, price, e.language].filter((x) => x && x !== 'Билет уже куплен').map(esc).join(', ');
+  const flag = UNVERIFIED.has(e.status) ? '<span class="flag">Не подтверждено. </span>' : '';
   return `<article class="ev ${e.ticket_purchased ? 'mine' : ''}">
     <time>${time}</time>
     <div><h3>${title}</h3>
-      <p>${esc(e.venue)}${e.price ? ' · ' + esc(e.price) : ''}${e.language ? ' · ' + esc(e.language) : ''}</p>
-      ${e.description ? `<p>${esc(e.description)}</p>` : ''}
-      ${e.notes ? `<p><i>${esc(e.notes)}</i></p>` : ''}
-      <p>${tags.join('')}</p></div>
-    <button class="star" data-fav="${id}" aria-pressed="${fav}" aria-label="В избранное">${fav ? '★' : '☆'}</button>
+      <p class="where">${where}</p>
+      ${e.description ? `<p class="about">${esc(e.description)}</p>` : ''}
+      ${flag || e.notes ? `<p class="note">${flag}${esc(e.notes)}</p>` : ''}
+      ${e.ticket_purchased ? '<span class="bought">Билет куплен</span>' : ''}</div>
+    ${e.ticket_purchased ? '<span></span>' : `<button class="star" data-fav="${id}" aria-pressed="${fav}" aria-label="${fav ? 'Убрать из моих' : 'Добавить в мои'}">${fav ? '★' : '☆'}</button>`}
   </article>`;
 }
 
-function renderList(list) {
+function renderDay() {
   const d = state.day, dt = dayOf(d);
-  const evs = list.filter((e) => e.date === d).sort((a, b) => (a.time || a.times?.[0] || '').localeCompare(b.time || b.times?.[0] || ''));
-  $('#list').innerHTML = `<h2>${dt.getDate()} ноября, ${WD[dt.getDay()]}</h2>` + (evs.length ? evs.map(card).join('') : '<p class="none">В этот день ничего по фильтру.</p>');
+  const dayEvents = data.events.filter((e) => e.date === d);
+  const cats = [...new Set(dayEvents.map((e) => e.category))];
+  if (state.cat && !cats.includes(state.cat)) state.cat = null;
+  const evs = dayEvents.filter(shown).sort((a, b) => startTime(a).localeCompare(startTime(b)));
+  const catBtn = (key, label) => `<button data-cat="${key ?? ''}" aria-pressed="${state.cat === key}">${label}</button>`;
+  $('#day').innerHTML = `
+    <div class="dayhead"><span class="big">${dt.getDate()}</span>
+      <span class="geo" lang="ka">${WD_KA[dt.getDay()]}</span>
+      <span class="ru">${WD_RU[dt.getDay()]}, ноябрь</span></div>
+    ${cats.length > 1 ? `<div class="cats">${catBtn(null, 'всё')}${cats.map((c) => catBtn(c, CATS[c] || c)).join('')}</div>` : ''}
+    ${evs.map(card).join('') || `<p class="empty">${state.onlyFav ? 'На этот день ничего не отмечено. Сними «Только мои», чтобы увидеть всё.' : 'В этот день в афише пусто. Хороший вечер, чтобы просто погулять.'}</p>`}`;
 }
 
 function renderMuseums() {
-  $('#museumList').innerHTML = data.museums.map((m) => `<div class="museum"><h3>${esc(m.name)}</h3>
-    ${(m.exhibitions || []).map((x) => `<p>«${esc(x.title)}»${x.until ? ' до ' + esc(x.until) : ''}${x.description ? ' — ' + esc(x.description) : ''}</p>`).join('')}
-    ${m.description ? `<p>${esc(m.description)}</p>` : ''}
-    <p class="tag">${esc(m.price)}</p> ${Object.entries(m.hours || {}).map(([k, v]) => `<span class="tag">${esc(k)}: ${esc(Array.isArray(v) ? v.join(', ') : v)}</span>`).join('')}
-  </div>`).join('');
+  const hours = (h) => Object.entries(h || {}).map(([k, v]) =>
+    `${HOURS[k] || k} ${Array.isArray(v) ? v.map((x) => DAY_EN[x] || x).join(', ') : v}`).join('; ');
+  $('#museums').innerHTML = `<div class="dayhead"><span class="big" style="font-size:44px">Музеи</span><span class="ru">Открыты всю неделю, можно в любой день</span></div>` +
+    data.museums.map((m) => `<div class="museum"><h3>${esc(m.name)}</h3>
+      ${(m.exhibitions || []).map((x) => `<p>«${esc(x.title)}»${x.until ? `, до ${dayOf(x.until).toLocaleDateString('ru', { day: 'numeric', month: 'long' })}` : ''}${x.description ? `. ${esc(x.description)}` : ''}</p>`).join('')}
+      ${m.description ? `<p>${esc(m.description)}</p>` : ''}
+      <p class="hours">${/не подтвержден/i.test(m.price) ? 'Цена неизвестна' : esc(m.price)}. ${esc(hours(m.hours))}</p></div>`).join('') +
+    `<footer>Афиша собрана 7 ноября. Цены и билеты проверяй по ссылкам.</footer>`;
 }
 
 function render() {
-  const list = visible();
-  renderCats(); renderDays(list); renderList(list);
+  const museums = state.day === 'museums';
+  $('#day').hidden = museums; $('#museums').hidden = !museums;
+  renderDays();
+  museums ? renderMuseums() : renderDay();
 }
 
 document.addEventListener('click', (ev) => {
@@ -85,7 +96,7 @@ document.addEventListener('click', (ev) => {
   } else if ('cat' in t.dataset) {
     state.cat = t.dataset.cat || null; render();
   } else if (t.dataset.day) {
-    state.day = t.dataset.day; render(); scrollTo({ top: 0 });
+    state.day = t.dataset.day; state.cat = null; render(); scrollTo({ top: 0 });
   }
 });
 $('#onlyFav').addEventListener('change', (e) => { state.onlyFav = e.target.checked; render(); });
@@ -94,5 +105,5 @@ fetch('events.json?v=' + Date.now()).then((r) => r.json()).then((d) => {
   data = d;
   const today = new Date().toISOString().slice(0, 10);
   state.day = days().includes(today) ? today : days()[0];
-  render(); renderMuseums();
+  render();
 });
