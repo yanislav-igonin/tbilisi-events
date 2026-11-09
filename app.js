@@ -2,7 +2,7 @@ const CATS = { theatre:'Театр', classical:'Классика', show:'Шоу'
 const STATUS = { restored_unverified:'не подтверждено', unverified_lead:'не подтверждено' };
 const WD = ['вс','пн','вт','ср','чт','пт','сб'];
 const favs = new Set(JSON.parse(localStorage.getItem('tbilisi-favs') || '[]'));
-const state = { cat: null, onlyFav: false };
+const state = { cat: null, onlyFav: false, day: null };
 let data;
 
 const $ = (s) => document.querySelector(s);
@@ -32,7 +32,7 @@ function renderDays(list) {
   $('#days').innerHTML = days().map((d) => {
     const evs = list.filter((e) => e.date === d), dt = dayOf(d);
     const busy = data.events.some((e) => e.date === d && e.ticket_purchased);
-    return `<button class="${busy ? 'busy' : ''} ${evs.length ? '' : 'empty'}" data-day="${d}">
+    return `<button class="${busy ? 'busy' : ''} ${evs.length ? '' : 'empty'}" data-day="${d}" aria-pressed="${d === state.day}">
       <small>${WD[dt.getDay()]}</small><b>${dt.getDate()}</b><small>${busy ? '🎟' : evs.length}</small></button>`;
   }).join('');
 }
@@ -57,12 +57,9 @@ function card(e) {
 }
 
 function renderList(list) {
-  $('#list').innerHTML = days().map((d) => {
-    const evs = list.filter((e) => e.date === d).sort((a, b) => (a.time || a.times?.[0] || '').localeCompare(b.time || b.times?.[0] || ''));
-    if (!evs.length) return '';
-    const dt = dayOf(d);
-    return `<section class="day" id="d-${d}"><h2>${dt.getDate()} ноября, ${WD[dt.getDay()]}</h2>${evs.map(card).join('')}</section>`;
-  }).join('') || '<p>Ничего не найдено.</p>';
+  const d = state.day, dt = dayOf(d);
+  const evs = list.filter((e) => e.date === d).sort((a, b) => (a.time || a.times?.[0] || '').localeCompare(b.time || b.times?.[0] || ''));
+  $('#list').innerHTML = `<h2>${dt.getDate()} ноября, ${WD[dt.getDay()]}</h2>` + (evs.length ? evs.map(card).join('') : '<p class="none">В этот день ничего по фильтру.</p>');
 }
 
 function renderMuseums() {
@@ -76,7 +73,6 @@ function renderMuseums() {
 function render() {
   const list = visible();
   renderCats(); renderDays(list); renderList(list);
-  document.documentElement.style.setProperty('--hh', $('header').offsetHeight + 'px');
 }
 
 document.addEventListener('click', (ev) => {
@@ -89,9 +85,14 @@ document.addEventListener('click', (ev) => {
   } else if ('cat' in t.dataset) {
     state.cat = t.dataset.cat || null; render();
   } else if (t.dataset.day) {
-    document.getElementById('d-' + t.dataset.day)?.scrollIntoView({ behavior: 'smooth' });
+    state.day = t.dataset.day; render(); scrollTo({ top: 0 });
   }
 });
 $('#onlyFav').addEventListener('change', (e) => { state.onlyFav = e.target.checked; render(); });
 
-fetch('events.json').then((r) => r.json()).then((d) => { data = d; render(); renderMuseums(); });
+fetch('events.json').then((r) => r.json()).then((d) => {
+  data = d;
+  const today = new Date().toISOString().slice(0, 10);
+  state.day = days().includes(today) ? today : days()[0];
+  render(); renderMuseums();
+});
