@@ -1,4 +1,4 @@
-const CATS = { theatre:'театр', classical:'классика', show:'шоу', comedy:'стендап', pop:'поп', excursion:'экскурсии', sport:'спорт', electronic:'электроника', folk:'фолк', rap:'рэп', jazz:'джаз', dance:'танец', rock:'рок', metal:'метал' };
+const CATS = { theatre:'театр', classical:'классика', show:'шоу', comedy:'стендап', pop:'поп', excursion:'экскурсии', sport:'спорт', electronic:'электроника', folk:'фолк', rap:'рэп', jazz:'джаз', dance:'танец', rock:'рок', metal:'метал', meetup:'митапы', quiz:'квизы', lecture:'лекции', party:'вечеринки', film:'кино', standup:'стендап', jam:'джемы', punk:'панк', blues:'блюз', other:'другое' };
 const UNVERIFIED = new Set(['restored_unverified', 'unverified_lead']);
 const WD = ['вс','пн','вт','ср','чт','пт','сб'];
 const WD_RU = ['воскресенье','понедельник','вторник','среда','четверг','пятница','суббота'];
@@ -32,16 +32,17 @@ function renderDays() {
     const dots = '<i></i>'.repeat(Math.min(evs.length, 5));
     return `<button class="${ticket ? 'ticket' : ''}" data-day="${d}" aria-pressed="${d === state.day}" aria-label="${dt.getDate()} ноября, событий: ${evs.length}">
       <span class="wd">${WD[dt.getDay()]}</span><span class="n">${dt.getDate()}</span><span class="dots">${dots}</span></button>`;
-  }).join('') + `<button class="museum-tab" data-day="museums" aria-pressed="${state.day === 'museums'}">Музеи</button>`;
+  }).join('') + `<button class="museum-tab" data-day="anytime" aria-pressed="${state.day === 'anytime'}">Любой день</button>`
+    + `<button class="museum-tab" data-day="museums" aria-pressed="${state.day === 'museums'}">Музеи</button>`;
 }
 
 function card(e) {
   const id = String(e.id), fav = favs.has(id);
-  const time = e.times ? e.times.join('<br>') : esc(e.time).replace(' / ', '<br>');
+  const time = e.times ? e.times.join('<br>') : esc(e.time || '').replace(' / ', '<br>');
   const title = e.url ? `<a href="${esc(e.url)}" target="_blank" rel="noopener">${esc(e.title)}</a>` : esc(e.title);
   const price = /не подтвержден/i.test(e.price || '') ? 'цена неизвестна' : e.price;
   const where = [e.venue, price, e.language].filter((x) => x && x !== 'Билет уже куплен').map(esc).join(', ');
-  const flag = UNVERIFIED.has(e.status) ? '<span class="flag">Не подтверждено. </span>' : '';
+  const flag = (UNVERIFIED.has(e.status) ? '<span class="flag">Не подтверждено. </span>' : '') + (e.recurring ? 'Регулярное. ' : '');
   return `<article class="ev ${e.ticket_purchased ? 'mine' : ''}">
     <time>${time}</time>
     <div><h3>${title}</h3>
@@ -54,16 +55,18 @@ function card(e) {
 }
 
 function renderDay() {
-  const d = state.day, dt = dayOf(d);
-  const dayEvents = data.events.filter((e) => e.date === d);
+  const anytime = state.day === 'anytime';
+  const d = state.day, dt = anytime ? null : dayOf(d);
+  const dayEvents = anytime ? data.anytime : data.events.filter((e) => e.date === d);
   const cats = [...new Set(dayEvents.map((e) => e.category))];
   if (state.cat && !cats.includes(state.cat)) state.cat = null;
   const evs = dayEvents.filter(shown).sort((a, b) => startTime(a).localeCompare(startTime(b)));
   const catBtn = (key, label) => `<button data-cat="${key ?? ''}" aria-pressed="${state.cat === key}">${label}</button>`;
-  $('#day').innerHTML = `
-    <div class="dayhead"><span class="big">${dt.getDate()}</span>
+  $('#day').innerHTML = (anytime
+    ? `<div class="dayhead"><span class="big" style="font-size:44px">Любой день</span><span class="ru">Экскурсии и места по записи, без фиксированной даты</span></div>`
+    : `<div class="dayhead"><span class="big">${dt.getDate()}</span>
       <span class="geo" lang="ka">${WD_KA[dt.getDay()]}</span>
-      <span class="ru">${WD_RU[dt.getDay()]}, ноябрь</span></div>
+      <span class="ru">${WD_RU[dt.getDay()]}, ноябрь</span></div>`) + `
     ${cats.length > 1 ? `<div class="cats">${catBtn(null, 'всё')}${cats.map((c) => catBtn(c, CATS[c] || c)).join('')}</div>` : ''}
     ${evs.map(card).join('') || `<p class="empty">${state.onlyFav ? 'На этот день ничего не отмечено. Сними «Только мои», чтобы увидеть всё.' : 'В этот день в афише пусто. Хороший вечер, чтобы просто погулять.'}</p>`}`;
 }
